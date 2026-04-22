@@ -20,18 +20,13 @@ phases:
 
   pre_build:
     commands:
-      - echo "Installing dependencies..."
       - echo "Logging into Docker..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
 
   build:
     commands:
       - echo "Running SonarQube Scan..."
-      - sonar-scanner \
-          -Dsonar.projectKey=swiggy \
-          -Dsonar.sources=. \
-          -Dsonar.host.url=http://43.205.116.96:9000 \
-          -Dsonar.login=$SONAR_TOKEN
+      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://43.205.116.96:9000 -Dsonar.login=$SONAR_TOKEN
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
@@ -39,15 +34,15 @@ phases:
       - echo "Pushing Docker image..."
       - docker push "$DOCKER_REGISTRY_USERNAME/swiggy:latest"
 
-post_build:
-  commands:
-    - |
-      aws ses send-email \
-      --from "madithati123@gmail.com" \
-      --to "madithati123@gmail.com" \
-      --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
-      --text "Build status: $CODEBUILD_BUILD_STATUS" \
-      --region "ap-south-1"
+  post_build:
+    commands:
+      - |
+        aws ses send-email \
+        --from "madithati123@gmail.com" \
+        --to "madithati123@gmail.com" \
+        --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
+        --text "Build status: $CODEBUILD_BUILD_STATUS" \
+        --region "ap-south-1"
 
 artifacts:
   files:
