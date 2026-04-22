@@ -53,12 +53,13 @@ phases:
 
 post_build:
   commands:
-    - aws ses send-email \
-        --from "madithati123@gmail.com" \
-        --to "madithati123@gmail.com" \
-        --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
-        --text "Build status: $CODEBUILD_BUILD_STATUS" \
-        --region "us-east-1" # Update with your preferred AWS region
+    - |
+      aws ses send-email \
+      --from "saharsha2004@gmail.com" \
+      --to "saharsha2004@gmail.com" \
+      --subject "CodeBuild Status: $CODEBUILD_BUILD_ID" \
+      --text "Build status: $CODEBUILD_BUILD_STATUS" \
+      --region "ap-south-1"
 
 
 artifacts:
