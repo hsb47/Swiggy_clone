@@ -18,6 +18,10 @@ phases:
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
+      - echo "Installing OWASP Dependency Check..."
+      - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
+      - unzip dependency-check-7.0.2-release.zip
+
   pre_build:
     commands:
       - echo "Logging into Docker..."
@@ -26,7 +30,10 @@ phases:
   build:
     commands:
       - echo "Running SonarQube Scan..."
-      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://13.201.126.35:9000 -Dsonar.login=$SONAR_TOKEN
+      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://43.205.116.96:9000 -Dsonar.login=$SONAR_TOKEN
+
+      - echo "Running Dependency Check..."
+      - ./dependency-check/bin/dependency-check.sh --scan . --format ALL
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
@@ -34,6 +41,13 @@ phases:
       - echo "Pushing Docker image..."
       - docker push "$DOCKER_REGISTRY_USERNAME/swiggy:latest"
 
+  post_build:
+    commands:
+      - echo "Build completed successfully"
+
 artifacts:
   files:
     - appspec.yaml
+    - dependency-check-report.html
+    - dependency-check-report.xml
+    - dependency-check-report.json
