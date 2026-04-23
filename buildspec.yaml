@@ -14,13 +14,13 @@ phases:
       java: corretto17
     commands:
       - echo "Installing Sonar Scanner..."
-      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
-      - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+      - wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+      - unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
       - echo "Installing Dependency Check..."
-      - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
-      - unzip dependency-check-7.0.2-release.zip
+      - wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
+      - unzip -q dependency-check-7.0.2-release.zip
 
       - echo "Installing Trivy..."
       - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
@@ -29,7 +29,7 @@ phases:
   pre_build:
     commands:
       - echo "Running Trivy FILE scan..."
-      - trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
+      - ./bin/trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
 
       - echo "Logging into Docker..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
@@ -37,16 +37,25 @@ phases:
   build:
     commands:
       - echo "Running SonarQube Scan..."
-      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://13.235.133.75:9000 -Dsonar.login=$SONAR_TOKEN
+      - sonar-scanner \
+        -Dsonar.projectKey=swiggy \
+        -Dsonar.sources=. \
+        -Dsonar.host.url=http://13.235.133.75:9000 \
+        -Dsonar.login=$SONAR_TOKEN
 
-      - echo "Running Dependency Check..."
-      - ./dependency-check/bin/dependency-check.sh --scan . --format ALL || true
+      - echo "Running Dependency Check (NO API KEY)..."
+      - |
+        ./dependency-check/bin/dependency-check.sh \
+        --scan . \
+        --format ALL \
+        --out dependency-check-report \
+        --noupdate || true
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
 
       - echo "Running Trivy IMAGE scan..."
-      - trivy image --exit-code 0 --no-progress "$DOCKER_REGISTRY_USERNAME/swiggy:latest" > trivy-image-scan.txt
+      - ./bin/trivy image --exit-code 0 --no-progress "$DOCKER_REGISTRY_USERNAME/swiggy:latest" > trivy-image-scan.txt
 
       - echo "Pushing Docker image..."
       - docker push "$DOCKER_REGISTRY_USERNAME/swiggy:latest"
