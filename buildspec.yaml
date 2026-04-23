@@ -58,6 +58,6 @@ phases:
 artifacts:
   files:
     - appspec.yaml
-    - dependency-check-report.*
     - trivy-file-scan.txt
     - trivy-image-scan.txt
+    - dependency-check-report/**/*
