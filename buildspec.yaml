@@ -9,23 +9,22 @@ env:
 
 phases:
   install:
-    runtime-versions:
-      python: 3.11
-      java: corretto17
-    commands:
-      - echo "Installing Sonar Scanner..."
-      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
-      - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
-      - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
+  runtime-versions:
+    python: 3.11
+    java: corretto17
+  commands:
+    - echo "Installing Sonar Scanner..."
+    - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+    - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+    - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
-      - echo "Installing Dependency Check..."
-      - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
-      - unzip dependency-check-7.0.2-release.zip
+    - echo "Installing Dependency Check..."
+    - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
+    - unzip dependency-check-7.0.2-release.zip
 
-      - echo "Installing Trivy..."
-      - wget https://github.com/aquasecurity/trivy/releases/download/v0.48.3/trivy_0.48.3_Linux-64bit.tar.gz
-      - tar zxvf trivy_0.48.3_Linux-64bit.tar.gz
-      - export PATH=$PATH:$(pwd)
+    - echo "Installing Trivy..."
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+    - export PATH=$PATH:$(pwd)/bin
 
   pre_build:
     commands:
