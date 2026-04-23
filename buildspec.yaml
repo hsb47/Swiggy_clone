@@ -18,12 +18,20 @@ phases:
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
-      - echo "Installing OWASP Dependency Check..."
+      - echo "Installing Dependency Check..."
       - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
       - unzip dependency-check-7.0.2-release.zip
 
+      - echo "Installing Trivy..."
+      - wget https://github.com/aquasecurity/trivy/releases/download/v0.48.3/trivy_0.48.3_Linux-64bit.tar.gz
+      - tar zxvf trivy_0.48.3_Linux-64bit.tar.gz
+      - export PATH=$PATH:$(pwd)
+
   pre_build:
     commands:
+      - echo "Running Trivy FILE scan..."
+      - ./trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
+
       - echo "Logging into Docker..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
 
@@ -38,6 +46,9 @@ phases:
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
 
+      - echo "Running Trivy IMAGE scan..."
+      - ./trivy image --exit-code 0 --no-progress "$DOCKER_REGISTRY_USERNAME/swiggy:latest" > trivy-image-scan.txt
+
       - echo "Pushing Docker image..."
       - docker push "$DOCKER_REGISTRY_USERNAME/swiggy:latest"
 
@@ -48,6 +59,6 @@ phases:
 artifacts:
   files:
     - appspec.yaml
-    - dependency-check-report.html
-    - dependency-check-report.xml
-    - dependency-check-report.json
+    - dependency-check-report.*
+    - trivy-file-scan.txt
+    - trivy-image-scan.txt
