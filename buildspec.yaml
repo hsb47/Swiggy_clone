@@ -46,7 +46,6 @@ phases:
         --scan . \
         --format ALL \
         --out dependency-check-report \
-        --noupdate || true
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
