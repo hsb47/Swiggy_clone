@@ -9,27 +9,27 @@ env:
 
 phases:
   install:
-  runtime-versions:
-    python: 3.11
-    java: corretto17
-  commands:
-    - echo "Installing Sonar Scanner..."
-    - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
-    - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
-    - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
+    runtime-versions:
+      python: 3.11
+      java: corretto17
+    commands:
+      - echo "Installing Sonar Scanner..."
+      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+      - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+      - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
-    - echo "Installing Dependency Check..."
-    - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
-    - unzip dependency-check-7.0.2-release.zip
+      - echo "Installing Dependency Check..."
+      - wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
+      - unzip dependency-check-7.0.2-release.zip
 
-    - echo "Installing Trivy..."
-    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-    - export PATH=$PATH:$(pwd)/bin
+      - echo "Installing Trivy..."
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+      - export PATH=$PATH:$(pwd)/bin
 
   pre_build:
     commands:
       - echo "Running Trivy FILE scan..."
-      - ./trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
+      - trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
 
       - echo "Logging into Docker..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
@@ -46,7 +46,7 @@ phases:
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
 
       - echo "Running Trivy IMAGE scan..."
-      - ./trivy image --exit-code 0 --no-progress "$DOCKER_REGISTRY_USERNAME/swiggy:latest" > trivy-image-scan.txt
+      - trivy image --exit-code 0 --no-progress "$DOCKER_REGISTRY_USERNAME/swiggy:latest" > trivy-image-scan.txt
 
       - echo "Pushing Docker image..."
       - docker push "$DOCKER_REGISTRY_USERNAME/swiggy:latest"
