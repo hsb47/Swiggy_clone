@@ -39,7 +39,8 @@ phases:
       - echo "Running SonarQube Scan..."
       - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://13.235.133.75:9000 -Dsonar.login=$SONAR_TOKEN
 
-      - echo "Running Dependency Check (NO API KEY)..."
+      - echo "Running Dependency Check..."
+      - mkdir -p dependency-check-report
       - |
         ./dependency-check/bin/dependency-check.sh \
         --scan . \
