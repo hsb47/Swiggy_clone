@@ -1,5 +1,5 @@
 steps:
-  # 🔨 Build Docker image
+  # Build
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - build
@@ -7,13 +7,13 @@ steps:
       - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
       - .
 
-  # 📦 Push image to Artifact Registry
+  # Push
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
       - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
 
-  # 🚀 Deploy to Cloud Run (NO TRAFFIC)
+  # Deploy (no traffic)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,7 +26,7 @@ steps:
       - --allow-unauthenticated
       - --no-traffic
 
-  # 🧪 Canary rollout (10% new, 90% old)
+  # Canary (FIXED VARIABLES)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash
     args:
@@ -34,19 +34,19 @@ steps:
       - |
         echo "Fetching revisions..."
 
-        LATEST=$(gcloud run services describe swiggy \
+        LATEST=$$(gcloud run services describe swiggy \
           --region=asia-south1 \
           --format='value(status.latestReadyRevisionName)')
 
-        PREV=$(gcloud run services describe swiggy \
+        PREV=$$(gcloud run services describe swiggy \
           --region=asia-south1 \
           --format='value(status.traffic[0].revisionName)')
 
-        echo "Latest: $LATEST"
-        echo "Previous: $PREV"
+        echo "Latest: $$LATEST"
+        echo "Previous: $$PREV"
 
         gcloud run services update-traffic swiggy \
-          --to-revisions=$LATEST=10,$PREV=90 \
+          --to-revisions=$$LATEST=10,$$PREV=90 \
           --region=asia-south1
 
 options:
