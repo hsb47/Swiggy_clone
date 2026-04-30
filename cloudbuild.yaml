@@ -1,5 +1,5 @@
 steps:
-  # Build
+  # 🔨 Build
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - build
@@ -7,13 +7,13 @@ steps:
       - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
       - .
 
-  # Push
+  # 📦 Push
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
       - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
 
-  # Deploy (no traffic)
+  # 🚀 Deploy (no traffic)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,28 +26,51 @@ steps:
       - --allow-unauthenticated
       - --no-traffic
 
-  # Canary (FIXED VARIABLES)
+  # 🧪 Canary rollout (safe + guaranteed 100%)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash
     args:
       - -c
       - |
+        set -e
+
         echo "Fetching revisions..."
 
         LATEST=$$(gcloud run services describe swiggy \
           --region=asia-south1 \
           --format='value(status.latestReadyRevisionName)')
 
-        PREV=$$(gcloud run services describe swiggy \
+        # Get ALL revisions
+        REVISIONS=($$(gcloud run revisions list \
+          --service=swiggy \
           --region=asia-south1 \
-          --format='value(status.traffic[0].revisionName)')
+          --format='value(metadata.name)'))
 
+        echo "All revisions: $${REVISIONS[@]}"
         echo "Latest: $$LATEST"
-        echo "Previous: $$PREV"
 
-        gcloud run services update-traffic swiggy \
-          --to-revisions=$$LATEST=10,$$PREV=90 \
-          --region=asia-south1
+        PREV=""
+
+        for r in "$${REVISIONS[@]}"; do
+          if [[ "$$r" != "$$LATEST" ]]; then
+            PREV=$$r
+            break
+          fi
+        done
+
+        if [[ -z "$$PREV" ]]; then
+          echo "No previous revision found → sending 100% to latest"
+          gcloud run services update-traffic swiggy \
+            --to-revisions=$$LATEST=100 \
+            --region=asia-south1
+        else
+          echo "Previous: $$PREV"
+          echo "Applying canary split: 10% new / 90% old"
+
+          gcloud run services update-traffic swiggy \
+            --to-revisions=$$LATEST=10,$$PREV=90 \
+            --region=asia-south1
+        fi
 
 options:
   logging: CLOUD_LOGGING_ONLY
