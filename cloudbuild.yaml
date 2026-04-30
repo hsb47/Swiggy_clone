@@ -21,6 +21,18 @@ steps:
       - --region=asia-south1
       - --platform=managed
       - --allow-unauthenticated
+      - --no-traffic
+
+  # Canary rollout step
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update-traffic
+      - swiggy
+      - --to-latest=10
+      - --region=asia-south1
 
 options:
   logging: CLOUD_LOGGING_ONLY
