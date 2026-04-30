@@ -20,7 +20,7 @@ steps:
       - --image=asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
       - --region=asia-south1
       - --platform=managed
-      - --no-traffic
+      - --allow-unauthenticated
 
 options:
   logging: CLOUD_LOGGING_ONLY
