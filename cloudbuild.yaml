@@ -24,15 +24,22 @@ steps:
       - --no-traffic
 
   # Canary rollout step
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - run
-      - services
-      - update-traffic
-      - swiggy
-      - --to-latest=10
-      - --region=asia-south1
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      LATEST=$(gcloud run services describe swiggy \
+        --region=asia-south1 \
+        --format='value(status.latestReadyRevisionName)')
+
+      PREV=$(gcloud run services describe swiggy \
+        --region=asia-south1 \
+        --format='value(status.traffic[0].revisionName)')
+
+      gcloud run services update-traffic swiggy \
+        --to-revisions=$LATEST=10,$PREV=90 \
+        --region=asia-south1
 
 options:
   logging: CLOUD_LOGGING_ONLY
