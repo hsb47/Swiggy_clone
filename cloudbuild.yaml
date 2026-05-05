@@ -1,5 +1,5 @@
 steps:
-  # 🔨 Build
+  # Build
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - build
@@ -7,13 +7,13 @@ steps:
       - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
       - .
 
-  # 📦 Push
+  # Push
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - push
       - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
 
-  # 🚀 Deploy (no traffic)
+  # Deploy (no traffic)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,7 +26,7 @@ steps:
       - --allow-unauthenticated
       - --no-traffic
 
-  # 🧪 Canary rollout (safe + guaranteed 100%)
+  # Canary rollout (safe + guaranteed 100%)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash
     args:
