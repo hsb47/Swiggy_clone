@@ -8,6 +8,7 @@ env:
     SONAR_TOKEN: /cicd/sonar/sonar-token
 
 phases:
+
   install:
     runtime-versions:
       python: 3.11
@@ -20,8 +21,9 @@ phases:
       - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
       - echo "Installing OWASP Dependency Check..."
-      - wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
-      - unzip -q dependency-check-7.0.2-release.zip
+      - wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
+      - unzip -q dependency-check-9.0.9-release.zip
+      - mv dependency-check dependency-check-bin || true
 
       - echo "Installing Trivy..."
       - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
@@ -32,7 +34,7 @@ phases:
       - echo "Running Trivy FILE scan..."
       - ./bin/trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
 
-      - echo "Logging into Docker..."
+      - echo "Logging into Docker Registry..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login "$DOCKER_REGISTRY_URL" -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
 
   build:
@@ -42,7 +44,7 @@ phases:
 
       - echo "Running OWASP Dependency Check..."
       - mkdir -p dependency-check-report
-      - ./dependency-check/bin/dependency-check.sh --scan . --format HTML --format JSON --out dependency-check-report
+      - ./dependency-check-bin/bin/dependency-check.sh --scan . --format HTML --format JSON --noupdate --out dependency-check-report
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
