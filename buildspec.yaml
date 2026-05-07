@@ -6,6 +6,7 @@ env:
     DOCKER_REGISTRY_PASSWORD: /cicd/docker-credentials/password
     DOCKER_REGISTRY_URL: /cicd/docker-registry/url
     SONAR_TOKEN: /cicd/sonar/sonar-token
+    NVD_API_KEY: /cicd/nvd/api-key
 
 phases:
 
@@ -44,7 +45,7 @@ phases:
 
       - echo "Running OWASP Dependency Check..."
       - mkdir -p dependency-check-report
-      - ./dependency-check-bin/bin/dependency-check.sh --scan . --format HTML --format JSON --disableAssembly --out dependency-check-report
+      - ./dependency-check-bin/bin/dependency-check.sh --scan . --format HTML --format JSON --disableAssembly --nvdApiKey $NVD_API_KEY --out dependency-check-report
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
