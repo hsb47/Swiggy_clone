@@ -6,9 +6,7 @@ substitutions:
 
 steps:
 
-# =========================
 # 1. SONARQUBE SCAN
-# =========================
 # Uncomment after SonarQube setup
 #
 # - name: 'sonarsource/sonar-scanner-cli'
@@ -22,23 +20,17 @@ steps:
 #       -Dsonar.host.url=$$SONAR_HOST_URL \
 #       -Dsonar.login=$$SONAR_TOKEN
 
-# =========================
 # 2. OWASP DEP CHECK
-# =========================
-# Uncomment later if needed
-#
-# - name: 'owasp/dependency-check'
-#   args:
-#     - --scan
-#     - .
-#     - --format
-#     - HTML
-#     - --out
-#     - /workspace/reports
+- name: 'owasp/dependency-check'
+  args:
+    - --scan
+    - .
+    - --format
+    - HTML
+    - --out
+    - /workspace/reports
 
-# =========================
 # 3. BUILD IMAGE
-# =========================
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - build
@@ -46,11 +38,7 @@ steps:
     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
     - .
 
-# =========================
 # 4. TRIVY SCAN
-# =========================
-# Security scan before push
-# =========================
 - name: 'aquasec/trivy'
   entrypoint: sh
   args:
@@ -61,17 +49,13 @@ steps:
       --severity HIGH,CRITICAL \
       asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
-# =========================
 # 5. PUSH IMAGE
-# =========================
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - push
     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
-# =========================
 # 6. DEPLOY NEW REVISION
-# =========================
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
   args:
@@ -84,9 +68,7 @@ steps:
     - --allow-unauthenticated
     - --no-traffic
 
-# =========================
 # 7. CANARY TRAFFIC SPLIT
-# =========================
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args:
