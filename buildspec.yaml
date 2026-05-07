@@ -12,13 +12,14 @@ phases:
     runtime-versions:
       python: 3.11
       java: corretto17
+
     commands:
       - echo "Installing Sonar Scanner..."
       - wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip -q sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$(pwd)/sonar-scanner-4.7.0.2747-linux/bin
 
-      - echo "Installing Dependency Check..."
+      - echo "Installing OWASP Dependency Check..."
       - wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v7.0.2/dependency-check-7.0.2-release.zip
       - unzip -q dependency-check-7.0.2-release.zip
 
@@ -32,20 +33,16 @@ phases:
       - ./bin/trivy fs --exit-code 0 --no-progress . > trivy-file-scan.txt
 
       - echo "Logging into Docker..."
-      - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
+      - echo "$DOCKER_REGISTRY_PASSWORD" | docker login "$DOCKER_REGISTRY_URL" -u "$DOCKER_REGISTRY_USERNAME" --password-stdin
 
   build:
     commands:
       - echo "Running SonarQube Scan..."
-      - sonar-scanner -Dsonar.projectKey=swiggy -Dsonar.sources=. -Dsonar.host.url=http://13.201.36.82:9000 -Dsonar.login=$SONAR_TOKEN
+      - sonar-scanner -Dsonar.projectKey=Swiggy -Dsonar.sources=. -Dsonar.host.url=http://13.201.36.82:9000 -Dsonar.token=$SONAR_TOKEN
 
-      - echo "Running Dependency Check..."
+      - echo "Running OWASP Dependency Check..."
       - mkdir -p dependency-check-report
-      - |
-        ./dependency-check/bin/dependency-check.sh \
-        --scan . \
-        --format ALL \
-        --out dependency-check-report \
+      - ./dependency-check/bin/dependency-check.sh --scan . --format HTML --format JSON --out dependency-check-report
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
@@ -62,7 +59,6 @@ phases:
 
 artifacts:
   files:
-    - appspec.yaml
     - trivy-file-scan.txt
     - trivy-image-scan.txt
     - dependency-check-report/**/*
