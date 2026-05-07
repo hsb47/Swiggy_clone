@@ -1,76 +1,138 @@
+substitutions:
+  _SERVICE_NAME: harsha-swiggy
+  _REGION: asia-south1
+  _REPO: harsha-swiggy-task
+  _IMAGE: swiggy
+
 steps:
-  # Build
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - build
-      - -t
-      - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
-      - .
 
-  # Push
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - push
-      - asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
+# =========================
+# 1. SONARQUBE SCAN
+# =========================
+# Uncomment after SonarQube setup
+#
+# - name: 'sonarsource/sonar-scanner-cli'
+#   entrypoint: bash
+#   args:
+#     - -c
+#     - |
+#       sonar-scanner \
+#       -Dsonar.projectKey=swiggy \
+#       -Dsonar.sources=. \
+#       -Dsonar.host.url=$$SONAR_HOST_URL \
+#       -Dsonar.login=$$SONAR_TOKEN
 
-  # Deploy (no traffic)
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - run
-      - deploy
-      - swiggy
-      - --image=asia-south1-docker.pkg.dev/$PROJECT_ID/harsha-swiggy-repo/swiggy:$SHORT_SHA
-      - --region=asia-south1
-      - --platform=managed
-      - --allow-unauthenticated
-      - --no-traffic
+# =========================
+# 2. OWASP DEP CHECK
+# =========================
+# Uncomment later if needed
+#
+# - name: 'owasp/dependency-check'
+#   args:
+#     - --scan
+#     - .
+#     - --format
+#     - HTML
+#     - --out
+#     - /workspace/reports
 
-  # Canary rollout (safe + guaranteed 100%)
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -e
+# =========================
+# 3. BUILD IMAGE
+# =========================
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - build
+    - -t
+    - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+    - .
 
-        echo "Fetching revisions..."
+# =========================
+# 4. TRIVY SCAN
+# =========================
+# Security scan before push
+# =========================
+- name: 'aquasec/trivy'
+  entrypoint: sh
+  args:
+    - -c
+    - |
+      trivy image \
+      --exit-code 0 \
+      --severity HIGH,CRITICAL \
+      asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
-        LATEST=$$(gcloud run services describe swiggy \
-          --region=asia-south1 \
-          --format='value(status.latestReadyRevisionName)')
+# =========================
+# 5. PUSH IMAGE
+# =========================
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - push
+    - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
-        # Get ALL revisions
-        REVISIONS=($$(gcloud run revisions list \
-          --service=swiggy \
-          --region=asia-south1 \
-          --format='value(metadata.name)'))
+# =========================
+# 6. DEPLOY NEW REVISION
+# =========================
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+    - run
+    - deploy
+    - ${_SERVICE_NAME}
+    - --image=asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+    - --region=${_REGION}
+    - --platform=managed
+    - --allow-unauthenticated
+    - --no-traffic
 
-        echo "All revisions: $${REVISIONS[@]}"
-        echo "Latest: $$LATEST"
+# =========================
+# 7. CANARY TRAFFIC SPLIT
+# =========================
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      set -e
 
-        PREV=""
+      echo "Fetching latest revision..."
 
-        for r in "$${REVISIONS[@]}"; do
-          if [[ "$$r" != "$$LATEST" ]]; then
-            PREV=$$r
-            break
-          fi
-        done
+      LATEST=$$(gcloud run services describe ${_SERVICE_NAME} \
+        --region=${_REGION} \
+        --format='value(status.latestReadyRevisionName)')
 
-        if [[ -z "$$PREV" ]]; then
-          echo "No previous revision found → sending 100% to latest"
-          gcloud run services update-traffic swiggy \
-            --to-revisions=$$LATEST=100 \
-            --region=asia-south1
-        else
-          echo "Previous: $$PREV"
-          echo "Applying canary split: 10% new / 90% old"
+      echo "Latest revision: $$LATEST"
 
-          gcloud run services update-traffic swiggy \
-            --to-revisions=$$LATEST=10,$$PREV=90 \
-            --region=asia-south1
-        fi
+      PREV=$$(gcloud run revisions list \
+        --service=${_SERVICE_NAME} \
+        --region=${_REGION} \
+        --sort-by="~metadata.creationTimestamp" \
+        --format='value(metadata.name)' \
+        --limit=2 | tail -n 1)
+
+      echo "Previous revision: $$PREV"
+
+      if [[ -z "$$PREV" || "$$PREV" == "$$LATEST" ]]; then
+
+        echo "No valid previous revision found."
+        echo "Routing 100% traffic to latest."
+
+        gcloud run services update-traffic ${_SERVICE_NAME} \
+          --to-revisions=$$LATEST=100 \
+          --region=${_REGION}
+
+      else
+
+        echo "Applying Canary Deployment"
+        echo "90% old / 10% new"
+
+        gcloud run services update-traffic ${_SERVICE_NAME} \
+          --to-revisions=$$LATEST=10,$$PREV=90 \
+          --region=${_REGION}
+
+      fi
+
+images:
+  - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
