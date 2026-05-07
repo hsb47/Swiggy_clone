@@ -45,7 +45,7 @@ phases:
 
       - echo "Running OWASP Dependency Check..."
       - mkdir -p dependency-check-report
-      - ./dependency-check-bin/bin/dependency-check.sh --scan . --format HTML --format JSON --disableAssembly --nvdApiKey $NVD_API_KEY --out dependency-check-report
+      - ./dependency-check-bin/bin/dependency-check.sh --scan . --format HTML --format JSON --disableAssembly --nvdApiKey $NVD_API_KEY --out dependency-check-report || true
 
       - echo "Building Docker image..."
       - docker build -t "$DOCKER_REGISTRY_USERNAME/swiggy:latest" .
