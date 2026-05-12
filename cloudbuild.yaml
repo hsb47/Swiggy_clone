@@ -124,7 +124,7 @@
 substitutions:
   _SERVICE_NAME: harsha-swiggy
   _REGION: asia-south1
-  _REPO: harsha-swiggy-task
+  _REPO: harsha-swiggy-repo
   _IMAGE: swiggy
   _SONAR_HOST_URL: http://35.207.246.55:9000
 
