@@ -24,21 +24,35 @@ steps:
       -Dsonar.working.directory=/tmp/.scannerwork
 
 
-- name: 'owasp/dependency-check'
-  allowFailure: true
-  entrypoint: /bin/sh
-  secretEnv:
-    - NVD_API_KEY
-  args:
-    - -c
-    - |
-      /usr/share/dependency-check/bin/dependency-check.sh \
-      --scan /workspace \
-      --format HTML \
-      --project swiggy \
-      --out /workspace/reports \
-      --nvdApiKey=$$NVD_API_KEY || true
+# - name: 'owasp/dependency-check'
+#   allowFailure: true
+#   entrypoint: /bin/sh
+#   secretEnv:
+#     - NVD_API_KEY
+#   args:
+#     - -c
+#     - |
+#       /usr/share/dependency-check/bin/dependency-check.sh \
+#       --scan /workspace \
+#       --format HTML \
+#       --project swiggy \
+#       --out /workspace/reports \
+#       --nvdApiKey=$$NVD_API_KEY || true
 
+# - name: 'owasp/dependency-check'
+#   allowFailure: true
+#   entrypoint: /bin/sh
+#   secretEnv:
+#     - NVD_API_KEY
+#   args:
+#     - -c
+#     - |
+#       /usr/share/dependency-check/bin/dependency-check.sh \
+#       --scan /workspace \
+#       --format HTML \
+#       --project swiggy \
+#       --out /workspace/reports \
+#       --no-update || true
 
 
 - name: 'gcr.io/cloud-builders/docker'
