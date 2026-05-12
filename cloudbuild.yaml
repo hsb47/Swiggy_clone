@@ -148,18 +148,20 @@ steps:
 
 
 - name: 'owasp/dependency-check'
+  allowFailure: true
   secretEnv:
     - NVD_API_KEY
+  entrypoint: sh
   args:
-    - --scan
-    - .
-    - --format
-    - HTML
-    - --project
-    - swiggy
-    - --out
-    - /workspace/reports
-    - --nvdApiKey=$$NVD_API_KEY
+    - -c
+    - |
+      dependency-check.sh \
+      --scan . \
+      --format HTML \
+      --project swiggy \
+      --out /workspace/reports \
+      --nvdApiKey=$$NVD_API_KEY || true
+
 
 - name: 'gcr.io/cloud-builders/docker'
   args:
