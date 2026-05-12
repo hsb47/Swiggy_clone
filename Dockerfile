@@ -18,7 +18,7 @@ RUN npm run build
 RUN npm install -g serve
 
 # Expose port
-EXPOSE 3000
+EXPOSE 8080
 
 # Serve production build
 CMD ["sh", "-c", "serve -s build -l tcp://0.0.0.0:$PORT"]
