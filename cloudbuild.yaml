@@ -136,12 +136,15 @@ steps:
   args:
     - -c
     - |
+      mkdir -p /tmp/.scannerwork
+
       sonar-scanner \
       -Dsonar.projectKey=swiggy \
       -Dsonar.projectName=swiggy \
       -Dsonar.sources=src \
       -Dsonar.host.url=${_SONAR_HOST_URL} \
-      -Dsonar.login=$$SONAR_TOKEN
+      -Dsonar.login=$$SONAR_TOKEN \
+      -Dsonar.working.directory=/tmp/.scannerwork
 
 
 - name: 'owasp/dependency-check'
