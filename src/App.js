@@ -27,7 +27,7 @@ function App() {
 
   <Navigate/>
   <OffersBanner/>
-  <RestaurantChain/>
+  <RestaurentChain/>
   <RestaurentOnline/>
   <BestRest/>
   <Footer/>
