@@ -23,7 +23,7 @@
 # # Serve production build
 # CMD ["sh", "-c", "serve -s build -l tcp://0.0.0.0:$PORT"]
 
-FROM node:18-alpine AS build
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -35,22 +35,8 @@ COPY . .
 
 RUN npm run build
 
-FROM nginx:alpine
-
-COPY --from=build /app/build /usr/share/nginx/html
-
-RUN rm /etc/nginx/conf.d/default.conf
-
-RUN printf 'server {\n\
-    listen 8080;\n\
-    server_name localhost;\n\
-    location / {\n\
-        root /usr/share/nginx/html;\n\
-        index index.html;\n\
-        try_files $uri /index.html;\n\
-    }\n\
-}\n' > /etc/nginx/conf.d/default.conf
+RUN npm install -g serve
 
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD serve -s build -l 8080
