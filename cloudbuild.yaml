@@ -1,36 +1,163 @@
+# substitutions:
+#   _SERVICE_NAME: harsha-swiggy
+#   _REGION: asia-south1
+#   _REPO: harsha-swiggy-task
+#   _IMAGE: swiggy
+
+# steps:
+
+# # 1. SONARQUBE SCAN
+# # Uncomment after SonarQube setup
+# #
+# # - name: 'sonarsource/sonar-scanner-cli'
+# #   entrypoint: bash
+# #   args:
+# #     - -c
+# #     - |
+# #       sonar-scanner \
+# #       -Dsonar.projectKey=swiggy \
+# #       -Dsonar.sources=. \
+# #       -Dsonar.host.url=$$SONAR_HOST_URL \
+# #       -Dsonar.login=$$SONAR_TOKEN
+
+# # 2. OWASP DEP CHECK
+# - name: 'owasp/dependency-check'
+#   args:
+#     - --scan
+#     - .
+#     - --format
+#     - HTML
+#     - --out
+#     - /workspace/reports
+
+# # 3. BUILD IMAGE
+# - name: 'gcr.io/cloud-builders/docker'
+#   args:
+#     - build
+#     - -t
+#     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+#     - .
+
+# # 4. TRIVY SCAN
+# - name: 'aquasec/trivy'
+#   entrypoint: sh
+#   args:
+#     - -c
+#     - |
+#       trivy image \
+#       --exit-code 0 \
+#       --severity HIGH,CRITICAL \
+#       asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+
+# # 5. PUSH IMAGE
+# - name: 'gcr.io/cloud-builders/docker'
+#   args:
+#     - push
+#     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+
+# # 6. DEPLOY NEW REVISION
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: gcloud
+#   args:
+#     - run
+#     - deploy
+#     - ${_SERVICE_NAME}
+#     - --image=asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+#     - --region=${_REGION}
+#     - --platform=managed
+#     - --allow-unauthenticated
+#     - --no-traffic
+
+# # 7. CANARY TRAFFIC SPLIT
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: bash
+#   args:
+#     - -c
+#     - |
+#       set -e
+
+#       echo "Fetching latest revision..."
+
+#       LATEST=$$(gcloud run services describe ${_SERVICE_NAME} \
+#         --region=${_REGION} \
+#         --format='value(status.latestReadyRevisionName)')
+
+#       echo "Latest revision: $$LATEST"
+
+#       PREV=$$(gcloud run revisions list \
+#         --service=${_SERVICE_NAME} \
+#         --region=${_REGION} \
+#         --sort-by="~metadata.creationTimestamp" \
+#         --format='value(metadata.name)' \
+#         --limit=2 | tail -n 1)
+
+#       echo "Previous revision: $$PREV"
+
+#       if [[ -z "$$PREV" || "$$PREV" == "$$LATEST" ]]; then
+
+#         echo "No valid previous revision found."
+#         echo "Routing 100% traffic to latest."
+
+#         gcloud run services update-traffic ${_SERVICE_NAME} \
+#           --to-revisions=$$LATEST=100 \
+#           --region=${_REGION}
+
+#       else
+
+#         echo "Applying Canary Deployment"
+#         echo "90% old / 10% new"
+
+#         gcloud run services update-traffic ${_SERVICE_NAME} \
+#           --to-revisions=$$LATEST=10,$$PREV=90 \
+#           --region=${_REGION}
+
+#       fi
+
+# images:
+#   - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
+
+# options:
+#   logging: CLOUD_LOGGING_ONLY
+
+
+
 substitutions:
   _SERVICE_NAME: harsha-swiggy
   _REGION: asia-south1
   _REPO: harsha-swiggy-task
   _IMAGE: swiggy
+  _SONAR_HOST_URL: http://35.207.246.55:9000
 
 steps:
 
-# 1. SONARQUBE SCAN
-# Uncomment after SonarQube setup
-#
-# - name: 'sonarsource/sonar-scanner-cli'
-#   entrypoint: bash
-#   args:
-#     - -c
-#     - |
-#       sonar-scanner \
-#       -Dsonar.projectKey=swiggy \
-#       -Dsonar.sources=. \
-#       -Dsonar.host.url=$$SONAR_HOST_URL \
-#       -Dsonar.login=$$SONAR_TOKEN
+- name: 'sonarsource/sonar-scanner-cli'
+  secretEnv:
+    - SONAR_TOKEN
+  entrypoint: sh
+  args:
+    - -c
+    - |
+      sonar-scanner \
+      -Dsonar.projectKey=swiggy \
+      -Dsonar.projectName=swiggy \
+      -Dsonar.sources=src \
+      -Dsonar.host.url=${_SONAR_HOST_URL} \
+      -Dsonar.login=$$SONAR_TOKEN
 
-# 2. OWASP DEP CHECK
 - name: 'owasp/dependency-check'
+  secretEnv:
+    - NVD_API_KEY
   args:
     - --scan
     - .
     - --format
     - HTML
+    - --project
+    - swiggy
     - --out
     - /workspace/reports
+    - --nvdApiKey=$$NVD_API_KEY
 
-# 3. BUILD IMAGE
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - build
@@ -38,7 +165,6 @@ steps:
     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
     - .
 
-# 4. TRIVY SCAN
 - name: 'aquasec/trivy'
   entrypoint: sh
   args:
@@ -47,15 +173,14 @@ steps:
       trivy image \
       --exit-code 0 \
       --severity HIGH,CRITICAL \
+      --ignore-unfixed \
       asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
-# 5. PUSH IMAGE
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - push
     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
-# 6. DEPLOY NEW REVISION
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
   args:
@@ -68,7 +193,6 @@ steps:
     - --allow-unauthenticated
     - --no-traffic
 
-# 7. CANARY TRAFFIC SPLIT
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args:
@@ -113,8 +237,33 @@ steps:
 
       fi
 
+- name: 'ubuntu'
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      echo "========================================"
+      echo "PIPELINE COMPLETED SUCCESSFULLY"
+      echo "========================================"
+      echo "SonarQube Dashboard:"
+      echo "${_SONAR_HOST_URL}"
+      echo ""
+      echo "OWASP Reports:"
+      echo "/workspace/reports"
+      echo "========================================"
+
 images:
   - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
 
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/SONAR_TOKEN/versions/latest
+      env: SONAR_TOKEN
+
+    - versionName: projects/$PROJECT_ID/secrets/NVD_API_KEY/versions/latest
+      env: NVD_API_KEY
+
 options:
   logging: CLOUD_LOGGING_ONLY
+
+
