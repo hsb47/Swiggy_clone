@@ -8,14 +8,31 @@ import RestaurentOnline from './Components/RestaurentOnline';
 
 function App() {
   return (
-    <div>
-      <Navigate/>
-      <OffersBanner/>
-      <RestaurentChain/>
-      <RestaurentOnline/>
-      <BestRest/>
-      <Footer/>
-    </div>
+<div
+  style={{
+    backgroundColor: "#d4ffd4",
+    minHeight: "100vh",
+    padding: "20px"
+  }}
+>
+  <h1
+    style={{
+      color: "green",
+      textAlign: "center",
+      fontSize: "40px"
+    }}
+  >
+    GREEN VERSION DEPLOYMENT
+  </h1>
+
+  <Navigate/>
+  <OffersBanner/>
+  <RestaurantChain/>
+  <RestaurentOnline/>
+  <BestRest/>
+  <Footer/>
+</div>
+
   );
 }
 
