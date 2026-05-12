@@ -1,126 +1,3 @@
-# substitutions:
-#   _SERVICE_NAME: harsha-swiggy
-#   _REGION: asia-south1
-#   _REPO: harsha-swiggy-task
-#   _IMAGE: swiggy
-
-# steps:
-
-# # 1. SONARQUBE SCAN
-# # Uncomment after SonarQube setup
-# #
-# # - name: 'sonarsource/sonar-scanner-cli'
-# #   entrypoint: bash
-# #   args:
-# #     - -c
-# #     - |
-# #       sonar-scanner \
-# #       -Dsonar.projectKey=swiggy \
-# #       -Dsonar.sources=. \
-# #       -Dsonar.host.url=$$SONAR_HOST_URL \
-# #       -Dsonar.login=$$SONAR_TOKEN
-
-# # 2. OWASP DEP CHECK
-# - name: 'owasp/dependency-check'
-#   args:
-#     - --scan
-#     - .
-#     - --format
-#     - HTML
-#     - --out
-#     - /workspace/reports
-
-# # 3. BUILD IMAGE
-# - name: 'gcr.io/cloud-builders/docker'
-#   args:
-#     - build
-#     - -t
-#     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
-#     - .
-
-# # 4. TRIVY SCAN
-# - name: 'aquasec/trivy'
-#   entrypoint: sh
-#   args:
-#     - -c
-#     - |
-#       trivy image \
-#       --exit-code 0 \
-#       --severity HIGH,CRITICAL \
-#       asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
-
-# # 5. PUSH IMAGE
-# - name: 'gcr.io/cloud-builders/docker'
-#   args:
-#     - push
-#     - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
-
-# # 6. DEPLOY NEW REVISION
-# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-#   entrypoint: gcloud
-#   args:
-#     - run
-#     - deploy
-#     - ${_SERVICE_NAME}
-#     - --image=asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
-#     - --region=${_REGION}
-#     - --platform=managed
-#     - --allow-unauthenticated
-#     - --no-traffic
-
-# # 7. CANARY TRAFFIC SPLIT
-# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-#   entrypoint: bash
-#   args:
-#     - -c
-#     - |
-#       set -e
-
-#       echo "Fetching latest revision..."
-
-#       LATEST=$$(gcloud run services describe ${_SERVICE_NAME} \
-#         --region=${_REGION} \
-#         --format='value(status.latestReadyRevisionName)')
-
-#       echo "Latest revision: $$LATEST"
-
-#       PREV=$$(gcloud run revisions list \
-#         --service=${_SERVICE_NAME} \
-#         --region=${_REGION} \
-#         --sort-by="~metadata.creationTimestamp" \
-#         --format='value(metadata.name)' \
-#         --limit=2 | tail -n 1)
-
-#       echo "Previous revision: $$PREV"
-
-#       if [[ -z "$$PREV" || "$$PREV" == "$$LATEST" ]]; then
-
-#         echo "No valid previous revision found."
-#         echo "Routing 100% traffic to latest."
-
-#         gcloud run services update-traffic ${_SERVICE_NAME} \
-#           --to-revisions=$$LATEST=100 \
-#           --region=${_REGION}
-
-#       else
-
-#         echo "Applying Canary Deployment"
-#         echo "90% old / 10% new"
-
-#         gcloud run services update-traffic ${_SERVICE_NAME} \
-#           --to-revisions=$$LATEST=10,$$PREV=90 \
-#           --region=${_REGION}
-
-#       fi
-
-# images:
-#   - asia-south1-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$SHORT_SHA
-
-# options:
-#   logging: CLOUD_LOGGING_ONLY
-
-
-
 substitutions:
   _SERVICE_NAME: harsha-swiggy
   _REGION: asia-south1
@@ -149,18 +26,19 @@ steps:
 
 - name: 'owasp/dependency-check'
   allowFailure: true
+  entrypoint: /bin/sh
   secretEnv:
     - NVD_API_KEY
-  entrypoint: sh
   args:
     - -c
     - |
-      dependency-check.sh \
-      --scan . \
+      /usr/share/dependency-check/bin/dependency-check.sh \
+      --scan /workspace \
       --format HTML \
       --project swiggy \
       --out /workspace/reports \
       --nvdApiKey=$$NVD_API_KEY || true
+
 
 
 - name: 'gcr.io/cloud-builders/docker'
