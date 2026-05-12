@@ -76,49 +76,49 @@ steps:
     - --allow-unauthenticated
     - --no-traffic
 
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: bash
-  args:
-    - -c
-    - |
-      set -e
+# - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#   entrypoint: bash
+#   args:
+#     - -c
+#     - |
+#       set -e
 
-      echo "Fetching latest revision..."
+#       echo "Fetching latest revision..."
 
-      LATEST=$$(gcloud run services describe ${_SERVICE_NAME} \
-        --region=${_REGION} \
-        --format='value(status.latestReadyRevisionName)')
+#       LATEST=$$(gcloud run services describe ${_SERVICE_NAME} \
+#         --region=${_REGION} \
+#         --format='value(status.latestReadyRevisionName)')
 
-      echo "Latest revision: $$LATEST"
+#       echo "Latest revision: $$LATEST"
 
-      PREV=$$(gcloud run revisions list \
-        --service=${_SERVICE_NAME} \
-        --region=${_REGION} \
-        --sort-by="~metadata.creationTimestamp" \
-        --format='value(metadata.name)' \
-        --limit=2 | tail -n 1)
+#       PREV=$$(gcloud run revisions list \
+#         --service=${_SERVICE_NAME} \
+#         --region=${_REGION} \
+#         --sort-by="~metadata.creationTimestamp" \
+#         --format='value(metadata.name)' \
+#         --limit=2 | tail -n 1)
 
-      echo "Previous revision: $$PREV"
+#       echo "Previous revision: $$PREV"
 
-      if [[ -z "$$PREV" || "$$PREV" == "$$LATEST" ]]; then
+#       if [[ -z "$$PREV" || "$$PREV" == "$$LATEST" ]]; then
 
-        echo "No valid previous revision found."
-        echo "Routing 100% traffic to latest."
+#         echo "No valid previous revision found."
+#         echo "Routing 100% traffic to latest."
 
-        gcloud run services update-traffic ${_SERVICE_NAME} \
-          --to-revisions=$$LATEST=100 \
-          --region=${_REGION}
+#         gcloud run services update-traffic ${_SERVICE_NAME} \
+#           --to-revisions=$$LATEST=100 \
+#           --region=${_REGION}
 
-      else
+#       else
 
-        echo "Applying Canary Deployment"
-        echo "90% old / 10% new"
+#         echo "Applying Canary Deployment"
+#         echo "90% old / 10% new"
 
-        gcloud run services update-traffic ${_SERVICE_NAME} \
-          --to-revisions=$$LATEST=10,$$PREV=90 \
-          --region=${_REGION}
+#         gcloud run services update-traffic ${_SERVICE_NAME} \
+#           --to-revisions=$$LATEST=10,$$PREV=90 \
+#           --region=${_REGION}
 
-      fi
+#       fi
 
 - name: 'ubuntu'
   entrypoint: bash
