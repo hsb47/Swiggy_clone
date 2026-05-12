@@ -129,7 +129,6 @@ substitutions:
   _SONAR_HOST_URL: http://35.207.246.55:9000
 
 steps:
-
 - name: 'sonarsource/sonar-scanner-cli'
   secretEnv:
     - SONAR_TOKEN
@@ -143,6 +142,7 @@ steps:
       -Dsonar.sources=src \
       -Dsonar.host.url=${_SONAR_HOST_URL} \
       -Dsonar.login=$$SONAR_TOKEN
+
 
 - name: 'owasp/dependency-check'
   secretEnv:
